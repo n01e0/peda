@@ -4840,6 +4840,8 @@ class PEDACmd(object):
         if str(address).startswith("r"):
             # Register
             regs = peda.getregs(" ".join(arg[1:]))
+            if "rax" in regs:
+                bits = 64
             if regname is None:
                 for r in REGISTERS[bits]:
                     if r in regs:
