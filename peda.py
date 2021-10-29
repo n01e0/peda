@@ -18,6 +18,7 @@ import time
 import signal
 import traceback
 import codecs
+import cxxfilt
 
 # point to absolute path of peda.py
 PEDAFILE = os.path.abspath(os.path.expanduser(__file__))
@@ -2326,6 +2327,10 @@ class PEDA(object):
             if v < elfbase:
                 symbols[k] = v + elfbase
 
+        # demangle symbol name
+        for (k, v) in symbols.items():
+            symbols[k] = cxxfilt.demangle(v)
+
         return symbols
 
     @memoized
@@ -3586,6 +3591,14 @@ class PEDACmd(object):
         msg(format_disasm_code(code))
 
         return
+
+    def sid(self):
+        """
+        Stepin and print dissassemblle current function
+        """
+        peda.execute_redirect('stepi', silent=True)
+        code = peda.disassemble()
+        msg(format_disasm_code(code))
 
     # disassemble_around
     def nearpc(self, *arg):
@@ -6073,7 +6086,7 @@ class Alias(gdb.Command):
         super(Alias, self).__init__(alias, gdb.COMMAND_NONE)
 
     def invoke(self, args, from_tty):
-        self.dont_repeat()
+        #self.dont_repeat()
         gdb.execute("%s %s" %(self._command, args))
 
     def complete(self, text, word):
