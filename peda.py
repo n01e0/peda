@@ -3600,6 +3600,14 @@ class PEDACmd(object):
         code = peda.disassemble()
         msg(format_disasm_code(code))
 
+    def nid(self):
+        """
+        Nextin and print dissassemblle current function
+        """
+        peda.execute_redirect('nexti', silent=True)
+        code = peda.disassemble()
+        msg(format_disasm_code(code))
+
     # disassemble_around
     def nearpc(self, *arg):
         """
