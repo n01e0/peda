@@ -60,6 +60,10 @@ REGISTERS = {
          "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"]
 }
 
+class Context(object):
+    def __init__(self):
+        self.count = 8
+
 ###########################################################################
 class PEDA(object):
     """
@@ -3027,6 +3031,7 @@ class PEDACmd(object):
     def __init__(self):
         # list of all available commands
         self.commands = [c for c in dir(self) if callable(getattr(self, c)) and not c.startswith("_")]
+        self._context = Context()
 
     ##################
     #   Misc Utils   #
@@ -4286,7 +4291,7 @@ class PEDACmd(object):
         (count,) = normalize_argv(arg, 1)
 
         if count is None:
-            count = 8
+            count = self._context.count
 
         if not self._is_running():
             return
@@ -4368,6 +4373,22 @@ class PEDACmd(object):
 
         return
 
+    def set_context_count(self, *arg):
+        """
+        Set Context count
+
+        Usage:
+            MYNAME count
+        """
+
+        (count, ) = normalize_argv(arg, 1)
+        if count is not None:
+            self._context.count = count
+
+        msg(f"context.count = {self._context.count}")
+
+        return
+
     def context(self, *arg):
         """
         Display various information of current execution context
@@ -4378,7 +4399,7 @@ class PEDACmd(object):
         (opt, count) = normalize_argv(arg, 2)
 
         if to_int(count) is None:
-            count = 8
+            count = self._context.count
         if opt is None:
             opt = config.Option.get("context")
         if opt == "all":
