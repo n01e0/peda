@@ -18,7 +18,10 @@ import time
 import signal
 import traceback
 import codecs
-import cxxfilt
+try:
+    import cxxfilt
+except ImportError:
+    print("cxxfilt not found. c++ symbol doesn't demangle")
 
 # point to absolute path of peda.py
 PEDAFILE = os.path.abspath(os.path.expanduser(__file__))
@@ -113,22 +116,22 @@ class PEDA(object):
         else:
             logfd = tmpfile()
         logname = logfd.name
-        gdb.execute('set logging off') # prevent nested call
+        gdb.execute('set logging enabled off') # prevent nested call
         gdb.execute('set height 0') # disable paging
         gdb.execute('set logging file %s' % logname)
         gdb.execute('set logging overwrite on')
         gdb.execute('set logging redirect on')
-        gdb.execute('set logging on')
+        gdb.execute('set logging enabled on')
         try:
             gdb.execute(gdb_command)
             gdb.flush()
-            gdb.execute('set logging off')
+            gdb.execute('set logging enabled off')
             if not silent:
                 logfd.flush()
                 result = logfd.read()
             logfd.close()
         except Exception as e:
-            gdb.execute('set logging off') #to be sure
+            gdb.execute('set logging enabled off') #to be sure
             if config.Option.get("debug") == "on":
                 msg('Exception (%s): %s' % (gdb_command, e), "red")
                 traceback.print_exc()
@@ -2332,8 +2335,9 @@ class PEDA(object):
                 symbols[k] = v + elfbase
 
         # demangle symbol name
-        for (k, v) in symbols.items():
-            symbols[k] = cxxfilt.demangle(v)
+        if "cxxfilt" in sys.modules:
+            for (k, v) in symbols.items():
+                symbols[k] = cxxfilt.demangle(v)
 
         return symbols
 
@@ -4795,14 +4799,15 @@ class PEDACmd(object):
             return
 
         result = []
-        for i in range(count):
-            value = address + i*step
+        for i in range(count if count >= 0 else -count):
+            value = address + (i*step if count >= 0 else -i*step)
             if peda.is_address(value):
                 result += [peda.examine_mem_reference(value)]
             else:
                 result += [None]
         idx = 0
         text = ""
+        if count < 0: result.reverse()
         for chain in result:
             text += "%04d| " % (idx)
             text += format_reference_chain(chain)
@@ -6156,7 +6161,7 @@ for cmd in pedacmd.commands:
 # handle SIGINT / Ctrl-C
 def sigint_handler(signal, frame):
     warning_msg("Got Ctrl+C / SIGINT!")
-    gdb.execute("set logging off")
+    gdb.execute("set logging enabled off")
     peda.restore_user_command("all")
     raise KeyboardInterrupt
 signal.signal(signal.SIGINT, sigint_handler)
