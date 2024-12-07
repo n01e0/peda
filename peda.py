@@ -30,9 +30,12 @@ if os.path.islink(PEDAFILE):
 sys.path.insert(0, os.path.dirname(PEDAFILE) + "/lib/")
 
 # Use six library to provide Python 2/3 compatibility
-import six
-from six.moves import range
-from six.moves import input
+try:
+    import six
+    from six.moves import range
+    from six.moves import input
+except:
+    print('six not found')
 try:
     import six.moves.cPickle as pickle
 except ImportError:
