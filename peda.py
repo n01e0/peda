@@ -159,10 +159,10 @@ class PEDA(object):
             if "$"+r not in exp and "e"+r not in exp and "r"+r not in exp:
                 exp = exp.replace(r, "$%s" % r)
 
-        p = re.compile("(.*)\[(.*)\]") # DWORD PTR [esi+eax*1]
+        p = re.compile(r"(.*)\[(.*)\]") # DWORD PTR [esi+eax*1]
         matches = p.search(exp)
         if not matches:
-            p = re.compile("(.*).s:(0x.*)") # DWORD PTR ds:0xdeadbeef
+            p = re.compile(r"(.*).s:(0x.*)") # DWORD PTR ds:0xdeadbeef
             matches = p.search(exp)
 
         if matches:
@@ -381,12 +381,12 @@ class PEDA(object):
         result = None
         out = self.execute_redirect('info files')
         if out and '"' in out:
-            p = re.compile(".*exec file:\s*`(.*)'")
+            p = re.compile(r".*exec file:\s*`(.*)'")
             m = p.search(out)
             if m:
                 result = m.group(1)
             else: # stripped file, get symbol file
-                p = re.compile("Symbols from \"([^\"]*)")
+                p = re.compile(r"Symbols from \"([^\"]*)")
                 m = p.search(out)
                 if m:
                     result = m.group(1)
@@ -558,11 +558,11 @@ class PEDA(object):
 
         lines = out.splitlines()[1:]
         # breakpoint regex
-        p = re.compile("^(\d*)\s*(.*breakpoint)\s*(keep|del)\s*(y|n)\s*(0x[^ ]*)\s*(.*)")
+        p = re.compile(r"^(\d*)\s*(.*breakpoint)\s*(keep|del)\s*(y|n)\s*(0x[^ ]*)\s*(.*)")
         m = p.match(lines[0])
         if not m:
             # catchpoint/watchpoint regex
-            p = re.compile("^(\d*)\s*(.*point)\s*(keep|del)\s*(y|n)\s*(.*)")
+            p = re.compile(r"^(\d*)\s*(.*point)\s*(keep|del)\s*(y|n)\s*(.*)")
             m = p.match(lines[0])
             if not m:
                 return None
@@ -924,9 +924,9 @@ class PEDA(object):
             out = self.execute_redirect("x/i 0x%x" % addr)
             if out:
                 line = out
-                p = re.compile("\s*(0x[^ ]*).*?:\s*([^ ]*)\s*(.*)")
+                p = re.compile(r"\s*(0x[^ ]*).*?:\s*([^ ]*)\s*(.*)")
             else:
-                p = re.compile("(.*?)\s*<.*?>\s*([^ ]*)\s*(.*)")
+                p = re.compile(r"(.*?)\s*<.*?>\s*([^ ]*)\s*(.*)")
 
             m = p.search(line)
             if m:
@@ -945,7 +945,7 @@ class PEDA(object):
         """
         if not argc:
             argc = 0
-            p = re.compile(".*mov.*\[esp(.*)\],")
+            p = re.compile(r".*mov.*\[esp(.*)\],")
             matches = p.findall(code)
             if matches:
                 l = len(matches)
@@ -977,10 +977,10 @@ class PEDA(object):
 
         # just retrieve max 6 args
         arg_order = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
-        p = re.compile(":\s*([^ ]*)\s*(.*),")
+        p = re.compile(r":\s*([^ ]*)\s*(.*),")
         matches = p.findall(code)
         regs = [r for (_, r) in matches]
-        p = re.compile(("di|si|dx|cx|r8|r9"))
+        p = re.compile((r"di|si|dx|cx|r8|r9"))
         m = p.findall(" ".join(regs))
         m = list(set(m)) # uniqify
         argc = 0
@@ -1117,14 +1117,14 @@ class PEDA(object):
                 current_instruction = "End of execution"
                 break
 
-            p = re.compile(".*?(0x[^ :]*)")
+            p = re.compile(r".*?(0x[^ :]*)")
             addr = p.search(current_instruction).group(1)
             addr = to_int(addr)
             if addr is None:
                 break
 
             #p = re.compile(".*?:\s*([^ ]*)")
-            p = re.compile(".*?:\s*(.*)")
+            p = re.compile(r".*?:\s*(.*)")
             code = p.match(current_instruction).group(1)
             found = 0
             for i in inst.replace(",", " ").split():
@@ -1231,10 +1231,10 @@ class PEDA(object):
         inst = inst.strip()
         opcode = inst.split(":\t")[-1].split()[0]
         # this regex includes x86_64 RIP relateive address reference
-        p = re.compile(".*?:\s*[^ ]*\s*(.* PTR ).*(0x[^ ]*)")
+        p = re.compile(r".*?:\s*[^ ]*\s*(.* PTR ).*(0x[^ ]*)")
         m = p.search(inst)
         if not m:
-            p = re.compile(".*?:\s.*\s(0x[^ ]*|\w+)")
+            p = re.compile(r".*?:\s.*\s(0x[^ ]*|\w+)")
             m = p.search(inst)
             if m:
                 target = m.group(1)
@@ -1243,7 +1243,7 @@ class PEDA(object):
                 target = None
         else:
             if "]" in m.group(2): # e.g DWORD PTR [ebx+0xc]
-                p = re.compile(".*?:\s*[^ ]*\s*(.* PTR ).*\[(.*)\]")
+                p = re.compile(r".*?:\s*[^ ]*\s*(.* PTR ).*\[(.*)\]")
                 m = p.search(inst)
             target = self.parse_and_eval("%s[%s]" % (m.group(1), m.group(2).strip()))
 
@@ -1438,7 +1438,7 @@ class PEDA(object):
         def _get_allmaps_osx(pid, remote=False):
             maps = []
             #_DATA                 00007fff77975000-00007fff77976000 [    4K] rw-/rw- SM=COW  /usr/lib/system/libremovefile.dylib
-            pattern = re.compile("([^\n]*)\s*  ([0-9a-f][^-\s]*)-([^\s]*) \[.*\]\s([^/]*).*  (.*)")
+            pattern = re.compile(r"([^\n]*)\s*  ([0-9a-f][^-\s]*)-([^\s]*) \[.*\]\s([^/]*).*  (.*)")
 
             if remote: # remote target, not yet supported
                 return maps
@@ -1463,7 +1463,7 @@ class PEDA(object):
             maps = []
             mpath = "/proc/%s/map" % pid
             # 0x8048000 0x8049000 1 0 0xc36afdd0 r-x 1 0 0x1000 COW NC vnode /path/to/file NCH -1
-            pattern = re.compile("0x([0-9a-f]*) 0x([0-9a-f]*)(?: [^ ]*){3} ([rwx-]*)(?: [^ ]*){6} ([^ ]*)")
+            pattern = re.compile(r"0x([0-9a-f]*) 0x([0-9a-f]*)(?: [^ ]*){3} ([rwx-]*)(?: [^ ]*){6} ([^ ]*)")
 
             if remote: # remote target, not yet supported
                 return maps
@@ -1490,7 +1490,7 @@ class PEDA(object):
             maps = []
             mpath = "/proc/%s/maps" % pid
             #00400000-0040b000 r-xp 00000000 08:02 538840  /path/to/file
-            pattern = re.compile("([0-9a-f]*)-([0-9a-f]*) ([rwxps-]*)(?: [^ ]*){3} *(.*)")
+            pattern = re.compile(r"([0-9a-f]*)-([0-9a-f]*) ([rwxps-]*)(?: [^ ]*){3} *(.*)")
 
             if remote: # remote target
                 tmp = tmpfile()
@@ -2104,7 +2104,7 @@ class PEDA(object):
                     if value >= start and value < end:
                         if type == "code":
                             out = self.get_disasm(value)
-                            p = re.compile(".*?0x[^ ]*?\s(.*)")
+                            p = re.compile(r".*?0x[^ ]*?\s(.*)")
                             m = p.search(out)
                             result = (to_hex(value), "code", m.group(1))
                         else: # rodata address
@@ -2122,7 +2122,7 @@ class PEDA(object):
                     out = examine_data(value, bits)
                     result = (to_hex(value), "rodata", out.split(":", 1)[1].strip())
                 else:
-                    p = re.compile(".*?0x[^ ]*?\s(.*)")
+                    p = re.compile(r".*?0x[^ ]*?\s(.*)")
                     m = p.search(out)
                     result = (to_hex(value), "code", m.group(1))
 
@@ -2222,7 +2222,7 @@ class PEDA(object):
             - entry address (Int)
         """
         out = self.execute_redirect("info files")
-        p = re.compile("Entry point: ([^\s]*)")
+        p = re.compile(r"Entry point: ([^\s]*)")
         if out:
             m = p.search(out)
             if m:
@@ -2250,7 +2250,7 @@ class PEDA(object):
         if not out:
             return {}
 
-        p = re.compile("\s*(0x[^-]*)->(0x[^ ]*) at (0x[^:]*):\s*([^ ]*)\s*(.*)")
+        p = re.compile(r"\s*(0x[^-]*)->(0x[^ ]*) at (0x[^:]*):\s*([^ ]*)\s*(.*)")
         matches = p.findall(out)
 
         for (start, end, offset, hname, attr) in matches:
@@ -2429,7 +2429,7 @@ class PEDA(object):
         out = execute_external_command("%s -W -S %s" % (config.READELF, filename))
         if not out:
             return {}
-        p = re.compile(".*\[.*\] (\.[^ ]*) [^0-9]* ([^ ]*) [^ ]* ([^ ]*)(.*)")
+        p = re.compile(r".*\[.*\] (\.[^ ]*) [^0-9]* ([^ ]*) [^ ]* ([^ ]*)(.*)")
         matches = p.findall(out)
         if not matches:
             return result
@@ -2487,7 +2487,7 @@ class PEDA(object):
             if not out:
                 return None
 
-            p = re.compile("[^\n]*\s*(0x[^ ]*) - (0x[^ ]*) is (\.[^ ]*) in (.*)")
+            p = re.compile(r"[^\n]*\s*(0x[^ ]*) - (0x[^ ]*) is (\.[^ ]*) in (.*)")
             soheaders = p.findall(out)
 
             result = []
@@ -4155,7 +4155,7 @@ class PEDACmd(object):
         prev_depth = peda.backtrace_depth(peda.getreg("sp"))
         logfd = open(logname, "w")
 
-        p = re.compile(".*?:\s*[^ ]*\s*([^,]*),(.*)")
+        p = re.compile(r".*?:\s*[^ ]*\s*([^,]*),(.*)")
         while count:
             result = peda.stepuntil(",".join(instlist), mapname, prev_depth)
             if result is None:
