@@ -575,7 +575,7 @@ class PEDA(object):
         disp = True if disp == "keep" else False
         enb = True if enb == "y" else False
         addr = to_int(addr)
-        m = re.match("in.*at(.*:\d*)", what)
+        m = re.match(r"in.*at(.*:\d*)", what)
         if m:
             what = m.group(1)
         else:
@@ -604,7 +604,7 @@ class PEDA(object):
 
         bplist = []
         for line in out.splitlines():
-            m = re.match("^(\d*).*", line)
+            m = re.match(r"^(\d*).*", line)
             if m and to_int(m.group(1)):
                 bplist += [to_int(m.group(1))]
 
@@ -636,7 +636,7 @@ class PEDA(object):
         try:
             fd = open(filename, "w")
             for (num, type, disp, enb, addr, what, commands) in bplist:
-                m = re.match("(.*)point", type)
+                m = re.match(r"(.*)point", type)
                 if m:
                     cmd = m.group(1).split()[-1]
                 else:
@@ -797,7 +797,7 @@ class PEDA(object):
                 if len(lines) > count and "(bad)" not in " ".join(lines):
                     for line in lines[-count-1:-1]:
                         (addr, code) = line.split(":", 1)
-                        addr = re.search("(0x[^ ]*)", addr).group(1)
+                        addr = re.search(r"(0x[^ ]*)", addr).group(1)
                         result += [(to_int(addr), code)]
                     return result
         return None
@@ -818,7 +818,7 @@ class PEDA(object):
             return None
 
         (addr, code) = out.split(":", 1)
-        addr = re.search("(0x[^ ]*)", addr).group(1)
+        addr = re.search(r"(0x[^ ]*)", addr).group(1)
         addr = to_int(addr)
         code = code.strip()
 
@@ -844,7 +844,7 @@ class PEDA(object):
         lines = code.strip().splitlines()
         for i in range(1, count+1):
             (addr, code) = lines[i].split(":", 1)
-            addr = re.search("(0x[^ ]*)", addr).group(1)
+            addr = re.search(r"(0x[^ ]*)", addr).group(1)
             result += [(to_int(addr), code)]
         return result
 
@@ -2324,7 +2324,7 @@ class PEDA(object):
             symname += "@plt"
             out = self.execute_redirect("info functions %s" % symname)
             if not out: continue
-            m = re.findall(".*(0x[^ ]*)\s*%s" % re.escape(symname), out)
+            m = re.findall(r".*(0x[^ ]*)\s*%s" % re.escape(symname), out)
             for addr in m:
                 addr = to_int(addr)
                 if self.is_address(addr, binmap):
@@ -2406,7 +2406,7 @@ class PEDA(object):
         if refs:
             inst = self.prev_inst(refs[0][0])
             if inst:
-                addr = re.search(".*(0x.*)", inst[0][1])
+                addr = re.search(r".*(0x.*)", inst[0][1])
                 if addr:
                     return to_int(addr.group(1))
         return None
@@ -2694,7 +2694,7 @@ class PEDA(object):
                     blen = gadget[-1][0] - gadget[0][0] + 1
                     bytes = v[:2*blen]
                     asmcode_rs = "; ".join([c for _, c in gadget])
-                    if re.search(re.escape(asmcode).replace("\ ",".*").replace("\?",".*"), asmcode_rs)\
+                    if re.search(re.escape(asmcode).replace(r"\ ",".*").replace(r"\?",".*"), asmcode_rs)\
                         and a not in result:
                         result[a] = (bytes, asmcode_rs)
             result = list(result.items())
@@ -2704,7 +2704,7 @@ class PEDA(object):
                 asmcode = self.execute_redirect("disassemble 0x%x, 0x%x" % (a, a+(len(v)//2)))
                 if asmcode:
                     asmcode = "\n".join(asmcode.splitlines()[1:-1])
-                    matches = re.findall(".*:([^\n]*)", asmcode)
+                    matches = re.findall(r".*:([^\n]*)", asmcode)
                     result += [(a, (v, ";".join(matches).strip()))]
 
         return result
@@ -3428,7 +3428,7 @@ class PEDACmd(object):
         """
         text = ""
         exp = " ".join(list(arg))
-        m = re.search(".*\[(.*)\]|.*?s:(0x[^ ]*)", exp)
+        m = re.search(r".*\[(.*)\]|.*?s:(0x[^ ]*)", exp)
         if m:
             addr = peda.parse_and_eval(m.group(1))
             if to_int(addr):
@@ -3533,7 +3533,7 @@ class PEDACmd(object):
         fdlist = os.listdir("/proc/%d/fd" % pid)
         for fd in fdlist:
             rpath = os.readlink("/proc/%d/fd/%s" % (pid, fd))
-            sock = re.search("socket:\[(.*)\]", rpath)
+            sock = re.search(r"socket:\[(.*)\]", rpath)
             if sock:
                 spath = execute_external_command("netstat -aen | grep %s" % sock.group(1))
                 if spath:
@@ -3543,11 +3543,11 @@ class PEDACmd(object):
         # uid/gid, pid, ppid
         info["pid"] = pid
         status = open("/proc/%d/status" % pid).read()
-        ppid = re.search("PPid:\s*([^\s]*)", status).group(1)
+        ppid = re.search(r"PPid:\s*([^\s]*)", status).group(1)
         info["ppid"] = to_int(ppid) if ppid else -1
-        uid = re.search("Uid:\s*([^\n]*)", status).group(1)
+        uid = re.search(r"Uid:\s*([^\n]*)", status).group(1)
         info["uid"] = [to_int(id) for id in uid.split()]
-        gid = re.search("Gid:\s*([^\n]*)", status).group(1)
+        gid = re.search(r"Gid:\s*([^\n]*)", status).group(1)
         info["gid"] = [to_int(id) for id in gid.split()]
 
         for opt in options:
@@ -4167,7 +4167,7 @@ class PEDACmd(object):
 
             # special case for JUMP inst
             prev_code = ""
-            if re.search("j[^m]", code.split(":\t")[-1].split()[0]):
+            if re.search(r"j[^m]", code.split(":\t")[-1].split()[0]):
                 prev_insts = peda.prev_inst(peda.getreg("pc"))
                 if prev_insts:
                     prev_code = "0x%x:%s" % prev_insts[0]
@@ -4176,7 +4176,7 @@ class PEDACmd(object):
             text = "%s%s%s" % (" "*(prev_depth-1), " dep:%02d " % (prev_depth-1), code.strip())
             msg(text, teefd=logfd)
 
-            if re.search("call", code.split(":\t")[-1].split()[0]):
+            if re.search(r"call", code.split(":\t")[-1].split()[0]):
                 args = peda.get_function_args()
                 if args:
                     for (i, a) in enumerate(args):
